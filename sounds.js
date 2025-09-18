@@ -7,14 +7,9 @@ class SoundManager {
     }
 
     initializeSounds() {
-        // 使用Web Audio API创建简单音效
-        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-
-        // 创建音效
-        this.createSounds();
-
-        // 背景音乐控制
-        this.setupMusicControls();
+        // 延迟初始化AudioContext，等待用户交互
+        this.audioContext = null;
+        this.soundsInitialized = false;
     }
 
     createSounds() {
@@ -41,6 +36,10 @@ class SoundManager {
         return () => {
             if (!this.enabled) return;
 
+            // 初始化AudioContext（如果尚未初始化）
+            this.initializeAudioContext();
+            if (!this.audioContext) return;
+
             const oscillator = this.audioContext.createOscillator();
             const gainNode = this.audioContext.createGain();
 
@@ -59,8 +58,7 @@ class SoundManager {
     }
 
     setupMusicControls() {
-        // 创建简单的背景音乐循环
-        this.createBackgroundMusic();
+        // 背景音乐控制将在用户交互后设置
     }
 
     createBackgroundMusic() {
@@ -81,6 +79,10 @@ class SoundManager {
 
     playMelody(notes, tempo, loop = false) {
         if (!this.enabled) return;
+
+        // 初始化AudioContext（如果尚未初始化）
+        this.initializeAudioContext();
+        if (!this.audioContext) return;
 
         let currentTime = this.audioContext.currentTime;
 
@@ -126,6 +128,29 @@ class SoundManager {
 
     setEnabled(enabled) {
         this.enabled = enabled;
+    }
+
+    initializeAudioContext() {
+        if (this.audioContext) return;
+
+        try {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+            // 如果音频上下文是暂停状态，尝试恢复
+            if (this.audioContext.state === 'suspended') {
+                this.audioContext.resume();
+            }
+
+            // 创建音效
+            this.createSounds();
+
+            // 设置背景音乐
+            this.createBackgroundMusic();
+
+            this.soundsInitialized = true;
+        } catch (error) {
+            console.error('Failed to initialize AudioContext:', error);
+        }
     }
 }
 
